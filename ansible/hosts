@@ -1,0 +1,7 @@
+[all]
+#db1.testy013.cloudant.com ansible_ssh_user=jdoane
+#db2.testy013.cloudant.com ansible_ssh_user=jdoane
+db3.testy013.cloudant.com ansible_ssh_user=jdoane
+[none]
+#db1.ea001.cloudant.com ansible_ssh_user=jdoane
+#db2.ea001.cloudant.com ansible_ssh_user=jdoane
