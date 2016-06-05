@@ -1,0 +1,7 @@
+{application, netcp,
+ [{description, "A network file copy server"},
+  {vsn, "0.1.0"},
+  {registered, [netcp_sup]},
+  {applications, [kernel, stdlib]},
+  {mod, {netcp_app, []}}
+ ]}.

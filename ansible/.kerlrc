@@ -1,0 +1,6 @@
+KERL_CONFIGURE_OPTIONS="--without-javac --disable-hipe --enable-smp-support 
+                        --enable-threads --enable-kernel-poll
+                        --enable-m64-build --enable-dynamic-ssl-lib
+                        --enable-dirty-schedulers"
+KERL_ENABLE_PROMPT=true
+KERL_CONFIGURE_DISABLE_APPLICATIONS=odbc

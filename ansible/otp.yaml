@@ -1,0 +1,19 @@
+- hosts: all
+  gather_facts: false
+  become: true
+  become_user: dbcore
+  vars:
+    otp_vsn: 18.3
+    home: /home/dbcore
+    kerl: '{{home}}/kerl'
+    otp_install_dir: '{{home}}/.kerl/installs/{{otp_vsn}}'
+  tasks:
+    - copy: src=.kerlrc dest={{home}}/
+    - command: curl -O https://raw.githubusercontent.com/yrashk/kerl/master/kerl
+               creates={{kerl}} chdir={{home}}
+    - file: path={{kerl}} mode='a+x'
+    - command: '{{kerl}} update releases'
+    - command: '{{kerl}} build {{otp_vsn}} {{otp_vsn}}
+               creates={{home}}/.kerl/builds/{{otp_vsn}}/release_{{otp_vsn}}'
+    - command: '{{kerl}} install {{otp_vsn}} {{otp_install_dir}}/
+               creates={{otp_install_dir}}'
