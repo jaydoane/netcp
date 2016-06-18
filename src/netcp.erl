@@ -26,10 +26,8 @@ accept(Listen) when is_tuple(Listen) -> % is_tuple since ssl_api.hrl is not expo
 
 recv(_Transport, _Socket, _Device, ByteCount, ByteCount, CheckSum) 
     when ByteCount > 0 ->
-    %% io:format("recv ~p~n", [ByteCount]),
     {ok, ByteCount, CheckSum};
 recv(Transport, Socket, Device, ExpectedSize, ByteCount, CheckSum) ->
-    %% io:format("recv ~p~n", [ByteCount]),
     case Transport:recv(Socket, 0, ?RECV_TIMEOUT) of
         {ok, Data} ->
             ok = file:write(Device, Data),
@@ -48,12 +46,9 @@ maybe_recv_header(Socket, Device) ->
         {ok, ?MAGIC} ->
             {ok, BinHeaderSize} = Transport:recv(Socket, ?ENCODED_SIZE),
             HeaderSize = binary:decode_unsigned(BinHeaderSize),
-            io:format("header Size ~p~n", [HeaderSize]),
             {ok, BinHeader} = Transport:recv(Socket, HeaderSize),
-            io:format("header ~p~n", [BinHeader]),
             {binary_to_term(BinHeader), 0};
         {ok, Data} ->
-            io:format("no header~n", []),
             ok = file:write(Device, Data),
             {#{}, size(Data)}
     end.
@@ -115,7 +110,7 @@ sendfile(Transport, Host, Port, Path, Opts) ->
 recv_response(Transport, Socket) ->
     {ok, BinResponse} = Transport:recv(Socket, 0, ?RESPONSE_TIMEOUT), % FIXME
     Response = binary_to_term(BinResponse),
-    io:format("Response ~p~n", [Response]),
+    io:format("recv_response ~p~n", [Response]),
     Response.
 
 check_response(ByteCount, CheckSum, Resp) ->

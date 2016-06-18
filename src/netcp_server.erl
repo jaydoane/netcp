@@ -21,18 +21,10 @@ handle_call(Msg, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-%% handle_cast(stop, State) ->
-%%     {stop, normal, State}.
-
-%% handle_info({tcp_closed, Socket}, State) ->
-%%     log:info("tcp_closed ~p, stopping", [Socket]),
-%%     {stop, normal, State};
 handle_info(timeout, #state{listen = Listen} = State) ->
     {ok, Socket} = netcp:accept(Listen),
     netcp_sup:start_child(),
     Transport = netcp:transport(Socket),
-    %% {ok, SocketOpts} = netcp:getopts(Socket, [exit_on_close, active]),
-    %% io:format("Socket Opts ~p~n", [SocketOpts]),
     Path = unique_path(),
     {ok, Device} = file:open(Path, [write, raw]),
 
@@ -46,7 +38,7 @@ handle_info(timeout, #state{listen = Listen} = State) ->
     ok = maybe_respond(Socket, Response, Header),
     ok = file:close(Device),
     ok = Transport:close(Socket),
-    io:format("Wrote ~p ~p bytes ~p checksum~n", [Path, Size, CheckSum]),
+    io:format("Wrote ~p~n", [Response]),
     {stop, normal, State}.
 
 maybe_respond(_, _, Header) when map_size(Header) == 0 ->
