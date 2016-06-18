@@ -1,7 +1,6 @@
 -module(netcp).
 
 %% external api
--export([wait/3, wait/4, sendfile/4, sendfile/5]).
 %% app internal
 -export([accept/1, recv/5, transport/1]).
 
@@ -9,36 +8,7 @@
 
 -include("netcp.hrl").
 
-wait(Transport, Path, Opts) ->
-    wait(Transport, ?DEFAULT_PORT, Path, Opts).
 
-wait(tcp, Port, Path, Opts) ->
-    wait(gen_tcp, Port, Path, Opts);
-wait(Transport, Port, Path, Opts) ->
-    {ok, Listen} = Transport:listen(Port, listen_opts(Transport, Opts)),
-    {ok, Socket} = accept(Listen),
-    io:format("Socket ~p~n", [Socket]),
-    {ok, Device} = file:open(Path, [write, raw]),
-
-    {ok, ByteCount, CheckSum} =
-        recv(Transport, Socket, Device, 0, erlang:adler32(<<>>)),
-
-    ok = file:close(Device),
-    ok = Transport:close(Socket),
-    ok = Transport:close(Listen),
-    {ok, ByteCount, CheckSum}.
-
-listen_opts(Transport, Opts) ->
-    TcpOpts = ?BASE_TCP_OPTS ++ [prop(recbuf, Opts, ?DEFAULT_RECBUF_SIZE)],
-    case Transport of
-        ssl ->
-            ok = ssl:start(), % FIX?
-            [prop(certfile, Opts, ?DEFAULT_CERTFILE),
-             prop(keyfile, Opts, ?DEFAULT_KEYFILE),
-             prop(ciphers, Opts, ?DEFAULT_CIPHERS)];
-        _ ->
-            []
-    end ++ TcpOpts.
 
 accept(Listen) when is_port(Listen) ->
     gen_tcp:accept(Listen);
