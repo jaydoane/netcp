@@ -30,23 +30,7 @@ unique_path() ->
     
 recv_file(Socket) ->
     Transport = transport(Socket),
-    UniquePath = unique_path(),
-    {Path, Header, Data, ExpectedSize} = case maybe_recv_header(Socket) of
-        {header, H} ->
-            io:format("header ~p~n", [H]),
-            P = maps:get(path, H, UniquePath),
-            E = maps:get(size, H, 0),
-            {P, H, <<>>, E};
-        {data, D} ->
-            {UniquePath, undefined, D, 0}
-    end,
-    {ok, Device} = file:open(Path, [write, raw]),
-    ByteCount = case Data of
-        <<>> -> 0;
-        _ ->
-            ok = file:write(Device, Data),
-            size(Data)
-    end,
+    {Device, Path, ExpectedSize, Header, ByteCount} = prepare_device(Socket),
     {ok, Size, CheckSum} = recv(
         Transport, Socket, Device, ExpectedSize, ByteCount, erlang:adler32(<<>>)),
     Response = #{path => Path, size => Size, checksum => CheckSum},
@@ -56,6 +40,26 @@ recv_file(Socket) ->
     io:format("Wrote ~p~n", [Response]),
     ok.
 
+prepare_device(Socket) ->
+    UniquePath = unique_path(),
+    case maybe_recv_header(Socket) of
+        {Header, Data = undefined} ->
+            io:format("header ~p~n", [Header]),
+            Path = maps:get(path, Header, UniquePath),
+            ExpectedSize = maps:get(size, Header);
+        {Header = undefined, Data} ->
+            Path = UniquePath,
+            ExpectedSize = 0
+    end,
+    {ok, Device} = file:open(Path, [write, raw]),
+    ByteCount = case Data of
+        undefined -> 0;
+        _ ->
+            ok = file:write(Device, Data),
+            size(Data)
+    end,
+    {Device, Path, ExpectedSize, Header, ByteCount}.
+
 maybe_recv_header(Socket) ->
     Transport = transport(Socket),
     case Transport:recv(Socket, size(?MAGIC)) of
@@ -63,9 +67,9 @@ maybe_recv_header(Socket) ->
             {ok, BinHeaderSize} = Transport:recv(Socket, ?ENCODED_SIZE),
             HeaderSize = binary:decode_unsigned(BinHeaderSize),
             {ok, BinHeader} = Transport:recv(Socket, HeaderSize),
-            {header, binary_to_term(BinHeader)};
+            {binary_to_term(BinHeader), undefined};
         {ok, Data} ->
-            {data, Data}
+            {undefined, Data}
     end.
 
 maybe_respond(_, _, undefined) ->
