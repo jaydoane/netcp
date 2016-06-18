@@ -30,17 +30,32 @@ handle_cast(_Msg, State) ->
 handle_info(timeout, #state{listen = Listen} = State) ->
     {ok, Socket} = netcp:accept(Listen),
     netcp_sup:start_child(),
-    File = unique_name(),
-    {ok, Device} = file:open(File, [write, raw]),
     Transport = netcp:transport(Socket),
+    %% {ok, SocketOpts} = netcp:getopts(Socket, [exit_on_close, active]),
+    %% io:format("Socket Opts ~p~n", [SocketOpts]),
+    Path = unique_path(),
+    {ok, Device} = file:open(Path, [write, raw]),
 
-    {ok, ByteCount, CheckSum} = 
-        netcp:recv(Transport, Socket, Device, 0, erlang:adler32(<<>>)),
+    {Header, ByteCount} = netcp:maybe_recv_header(Socket, Device),
+    io:format("Header ~p~n", [Header]),
+    ExpectedSize = maps:get(filesize, Header, 0),
+    {ok, Size, CheckSum} = netcp:recv(
+        Transport, Socket, Device, ExpectedSize, ByteCount, erlang:adler32(<<>>)),
 
+    Response = #{path => Path, size => Size, checksum => CheckSum},
+    ok = maybe_respond(Socket, Response, Header),
     ok = file:close(Device),
     ok = Transport:close(Socket),
-    io:format("Wrote ~p with ~p bytes ~p checksum~n", [File, ByteCount, CheckSum]),
+    io:format("Wrote ~p ~p bytes ~p checksum~n", [Path, Size, CheckSum]),
     {stop, normal, State}.
+
+maybe_respond(_, _, Header) when map_size(Header) == 0 ->
+    ok; % no header -> no response
+maybe_respond(Socket, Response, _Header) ->
+    BinResponse = term_to_binary(Response),
+    Transport = netcp:transport(Socket),
+    io:format("respond ~p~n", [Response]),
+    ok = Transport:send(Socket, BinResponse).
 
 terminate(_Reason, _State) ->
     ok.
@@ -50,6 +65,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions
 
-unique_name() ->
-    "/tmp/" ++ integer_to_list(erlang:unique_integer([positive])).
+unique_path() ->
+    netcp_app:env(dir, "/tmp/") ++ "1".
+        %% ++ integer_to_list(erlang:unique_integer([positive])).
     
