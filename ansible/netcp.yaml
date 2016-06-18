@@ -1,14 +1,3 @@
 - hosts: all
-  gather_facts: false
-  become: true
-  become_user: dbcore
-  vars:
-    home: /home/dbcore/netcp
   tasks:
-    - file: path={{home}} state=directory
-    - copy: src={{item}} dest={{home}}
-      with_fileglob:
-        - ../src/netcp.*
-    - copy: src={{item}} dest=/tmp/
-      with_fileglob:
-        - ~/.certs/*.pem
+    - synchronize: src=../../netcp dest=~
