@@ -86,14 +86,15 @@ sendfile(Transport, Host, Port, Path, Opts) ->
     BufSize = proplists:get_value(readbuf, Opts, ?DEFAULT_FILE_READ_BUF_SIZE),
     {ok, Socket} = Transport:connect(Host, Port, connect_opts(Transport, Opts)),
     
-    FileSize = filelib:file_size(Path),
     {ok, Device} = file:open(Path, [read, raw, binary]),
     Mod = proplists:get_value(transform, Opts, ?MODULE),
     Transform = Mod:transformer(Device),
 
     case proplists:get_value(header, Opts) of
         undefined -> ok;
-        _ -> ok = send_header(Socket, #{filesize => FileSize})
+        _ -> 
+            Size = filelib:file_size(Path),
+            ok = send_header(Socket, #{size => Size})
     end,
     {ok, ByteCount, CheckSum} = send(
         Socket, Device, BufSize, 0, erlang:adler32(<<>>), Transform),
