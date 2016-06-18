@@ -2,15 +2,17 @@
 
 -behaviour(application).
 
--export([start/2, stop/1]).
+-export([start/2, stop/1, env/2]).
 
 -include("netcp.hrl").
 
 start(_StartType, _StartArgs) ->
-    Port = app_env(port, ?DEFAULT_PORT),
-    Transport = app_env(transport, ?DEFAULT_TRANSPORT),
-    {ok, Listen} = Transport:listen(Port, listen_opts(Transport)),
-    io:format("netcp listening on port ~p~n", [Port]),
+    Port = env(port, ?DEFAULT_PORT),
+    Transport = env(transport, ?DEFAULT_TRANSPORT),
+    ListenOpts = listen_opts(Transport),
+    {ok, Listen} = Transport:listen(Port, ListenOpts),
+    io:format("netcp listening on port ~p transport ~p ~nopts ~p~n",
+              [Port, Transport, ListenOpts]),
     case netcp_sup:start_link(Listen) of
         {ok, Pid} ->
             netcp_sup:start_child(),
@@ -30,8 +32,8 @@ listen_opts(ssl) ->
 listen_opts(_) ->
     ?BASE_TCP_OPTS.
 
-app_env(Key, Default) ->
+env(Key, Default) ->
     application:get_env(netcp, Key, Default).
 
 prop(Key, Defaults) ->
-    {Key, app_env(Key, Defaults)}.
+    {Key, env(Key, Defaults)}.
