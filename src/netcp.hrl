@@ -4,7 +4,7 @@
 -define(MAGIC, <<"«º«º«º«º">>).
 
 -define(BASE_TCP_OPTS, [
-    binary, {packet, 0}, {active, false}, {reuseaddr, true}, {exit_on_close, false}]).
+    binary, {packet, 0}, {active, false}, {reuseaddr, true}]).
 -define(RECV_TIMEOUT, 1000). % ms
 -define(RESPONSE_TIMEOUT, 5000). % ms
 
