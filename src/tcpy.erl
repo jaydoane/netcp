@@ -6,6 +6,8 @@
 
 -define(BITS_PER_BYTE, 8).
 
+-define(MAGIC, <<"«º«º«º«º">>).
+
 %% send(Host, Port, IOData) ->
 %%     {ok, Socket} = gen_tcp:connect(Host, Port, [binary, {packet, 0}]),
 %%     ok = gen_tcp:send(Socket, IOData),
@@ -15,17 +17,18 @@
 %%     sendfile("db2.testy013.cloudant.net", 12378,
 %%         "/srv/rebal2_test_assets/shard_maps.tar.gz").
 
-sendfile(Host, Port, Path) ->
+sendfile(Host, Port, Path, WithMagic) ->
     {ok, Socket} = gen_tcp:connect(Host, Port, [binary, {packet, 0}, {active, false}]),
-    EncodedPath = encode(Path),
-    ok = gen_tcp:send(Socket, EncodedPath),
+    case WithMagic of
+        true ->
+            EncodedPath = encode(Path),
+            ok = gen_tcp:send(Socket, ?MAGIC),
+            ok = gen_tcp:send(Socket, EncodedPath);
+        _ ->
+            ok
+    end,
     {ok, Bytes} = file:sendfile(Path, Socket),
-    %% Stat = inet:getstat(Socket),
-    ok = inet:setopts(Socket, [{active, false}]),
-    Opts = inet:getopts(Socket, [active]),
-    %% io:format("Stat ~p~n", [Stat]),
     ok = gen_tcp:shutdown(Socket, write),
-    io:format("Opts ~p~n", [Opts]),
     {ok, Response} = gen_tcp:recv(Socket, 0, 5000),
     io:format("Response ~p~n", [Response]),
     io:format("Decoded Response ~p~n", [binary:decode_unsigned(Response)]),
@@ -51,16 +54,24 @@ get(Port, File, RecBuf) ->
     {ok, SocketOpts} = inet:getopts(Socket, [buffer, recbuf]),
     io:format("SocketOpts ~p~n", [SocketOpts]),
 
-    {ok, EncodedSize} = gen_tcp:recv(Socket, 2),
-    Size = binary:decode_unsigned(EncodedSize),
-    io:format("Size ~p~n", [Size]),
-    {ok, BinPath} = gen_tcp:recv(Socket, Size),
-    io:format("BinPath ~p~n", [BinPath]),
-    
     {ok, Device} = file:open(File, [write, raw]),
     %% {ok, Device} = file:open(BinPath, [write, raw]),
 
-    {ok, ByteCount} = recv(Socket, Device, 0),
+    ByteCount0 = case gen_tcp:recv(Socket, size(?MAGIC)) of
+        {ok, ?MAGIC} ->
+            {ok, EncodedSize} = gen_tcp:recv(Socket, 2),
+            Size = binary:decode_unsigned(EncodedSize),
+            io:format("Size ~p~n", [Size]),
+            {ok, BinPath} = gen_tcp:recv(Socket, Size),
+            io:format("BinPath ~p~n", [BinPath]),
+            0;
+        {ok, Data} ->
+            io:format("Raw~n", []),
+            ok = file:write(Device, Data),
+            size(Data)
+    end,
+
+    {ok, ByteCount} = recv(Socket, Device, ByteCount0),
     EncodedByteCount = binary:encode_unsigned(ByteCount),
     io:format("Returning ByteCount ~p~n", [EncodedByteCount]),
     ok = gen_tcp:send(Socket, EncodedByteCount),
