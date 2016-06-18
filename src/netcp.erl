@@ -3,10 +3,10 @@
 %% external api
 -export([
     start/0, stop/0,
-    sendfile/4, sendfile/5,
-    transformer/1, maybe_recv_header/2]).
+    sendfile/4, sendfile/5, recv_file/1,
+    transformer/1]).
 %% app internal
--export([accept/1, recv/6, transport/1, getopts/2]).
+-export([accept/1, transport/1]).
 
 -include("netcp.hrl").
 
@@ -23,6 +23,36 @@ accept(Listen) when is_tuple(Listen) -> % is_tuple since ssl_api.hrl is not expo
     ok = ssl:ssl_accept(Socket),
     io:format("SSL connection info ~p~n", [ssl:connection_information(Socket)]),
     {ok, Socket}.
+
+unique_path() ->
+    netcp_app:env(dir, "/tmp/") ++ "1".
+        %% ++ integer_to_list(erlang:unique_integer([positive])).
+    
+recv_file(Socket) ->
+    Transport = transport(Socket),
+    Path = unique_path(),
+    {ok, Device} = file:open(Path, [write, raw]),
+
+    {Header, ByteCount} = maybe_recv_header(Socket, Device),
+    io:format("Header ~p~n", [Header]),
+    ExpectedSize = maps:get(size, Header, 0),
+    {ok, Size, CheckSum} = recv(
+        Transport, Socket, Device, ExpectedSize, ByteCount, erlang:adler32(<<>>)),
+
+    Response = #{path => Path, size => Size, checksum => CheckSum},
+    ok = maybe_respond(Socket, Response, Header),
+    ok = file:close(Device),
+    ok = Transport:close(Socket),
+    io:format("Wrote ~p~n", [Response]),
+    ok.
+
+maybe_respond(_, _, Header) when map_size(Header) == 0 ->
+    ok; % no header -> no response
+maybe_respond(Socket, Response, _Header) ->
+    BinResponse = term_to_binary(Response),
+    Transport = netcp:transport(Socket),
+    io:format("respond ~p~n", [Response]),
+    ok = Transport:send(Socket, BinResponse).
 
 recv(_Transport, _Socket, _Device, ByteCount, ByteCount, CheckSum) 
     when ByteCount > 0 ->
@@ -152,10 +182,10 @@ transport(Socket) when is_port(Socket) ->
 transport(_) ->
     ssl.
 
-getopts(Socket, OptionNames) when is_port(Socket) ->
-    inet:getopts(Socket, OptionNames);
-getopts(Socket, OptionNames) ->
-    ssl:getopts(Socket, OptionNames).
+%% getopts(Socket, OptionNames) when is_port(Socket) ->
+%%     inet:getopts(Socket, OptionNames);
+%% getopts(Socket, OptionNames) ->
+%%     ssl:getopts(Socket, OptionNames).
 
 prop(Key, Opts, Default) ->
     {Key, proplists:get_value(Key, Opts, Default)}.    
