@@ -38,7 +38,7 @@ handle_info(timeout, #state{listen = Listen} = State) ->
 
     {Header, ByteCount} = netcp:maybe_recv_header(Socket, Device),
     io:format("Header ~p~n", [Header]),
-    ExpectedSize = maps:get(filesize, Header, 0),
+    ExpectedSize = maps:get(size, Header, 0),
     {ok, Size, CheckSum} = netcp:recv(
         Transport, Socket, Device, ExpectedSize, ByteCount, erlang:adler32(<<>>)),
 
