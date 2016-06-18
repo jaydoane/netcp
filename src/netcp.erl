@@ -40,9 +40,11 @@ sendfile(Transport, Host, Port, Path, Opts) ->
     BufSize = proplists:get_value(readbuf, Opts, ?DEFAULT_FILE_READ_BUF_SIZE),
     {ok, Socket} = Transport:connect(Host, Port, connect_opts(Transport, Opts)),
     {ok, Device} = file:open(Path, [read, raw, binary]),
+    Mod = proplists:get_value(transform, Opts, ?MODULE),
+    Transform = Mod:transformer(Device),
 
     {ok, ByteCount, CheckSum} = send(
-        Transport, Socket, Device, BufSize, 0, erlang:adler32(<<>>)),
+        Socket, Device, BufSize, 0, erlang:adler32(<<>>), Transform),
 
     ok = file:close(Device),
     ok = Transport:close(Socket),
@@ -61,6 +63,8 @@ connect_opts(Transport, Opts) ->
 send(Transport, Socket, Device, BufSize, ByteCount, CheckSum) ->
     case file:read(Device, BufSize) of
         {ok, Data} ->
+        {ok, Data0} ->
+            Data = Transform(Data0),
             case Transport:send(Socket, Data) of
                 ok ->
                     send(Transport, Socket, Device, BufSize,
@@ -72,6 +76,10 @@ send(Transport, Socket, Device, BufSize, ByteCount, CheckSum) ->
         eof ->
             {ok, ByteCount, CheckSum}
     end.
+
+%% default is no-op
+transformer(_Device) ->
+    fun(Data) -> Data end.
 
 transport(Socket) when is_port(Socket) ->
     gen_tcp;
