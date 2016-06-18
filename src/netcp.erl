@@ -103,7 +103,10 @@ sendfile(Transport, Host, Port, Path, Opts) ->
 
     Response = case proplists:get_value(header, Opts) of
         undefined -> undefined;
-        _ -> recv_response(Transport, Socket)
+        _ ->
+            Resp = recv_response(Transport, Socket),
+            ok = check_response(ByteCount, CheckSum, Resp),
+            Resp
     end,
     ok = Transport:close(Socket),
     ElapsedMicroSeconds = erlang:system_time(micro_seconds) - Start,
@@ -114,6 +117,11 @@ recv_response(Transport, Socket) ->
     Response = binary_to_term(BinResponse),
     io:format("Response ~p~n", [Response]),
     Response.
+
+check_response(ByteCount, CheckSum, Resp) ->
+    ByteCount = maps:get(size, Resp),
+    CheckSum = maps:get(checksum, Resp),
+    ok.
 
 connect_opts(Transport, Opts) ->
     case Transport of
