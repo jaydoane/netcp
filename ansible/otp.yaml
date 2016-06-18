@@ -1,10 +1,7 @@
 - hosts: all
-  gather_facts: false
-  become: true
-  become_user: dbcore
   vars:
     otp_vsn: 18.3
-    home: /home/dbcore
+    home: /home/{{ ansible_user }}
     kerl: '{{home}}/kerl'
     otp_install_dir: '{{home}}/.kerl/installs/{{otp_vsn}}'
   tasks:
