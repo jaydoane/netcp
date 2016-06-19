@@ -42,16 +42,7 @@ recv_file(Socket) ->
     ok.
 
 prepare_device(Socket) ->
-    UniquePath = unique_path(),
-    case maybe_recv_header(Socket) of
-        {Header, Data = <<>>} ->
-            io:format("header ~p~n", [Header]),
-            Path = maps:get(path, Header, UniquePath),
-            ExpectedSize = maps:get(size, Header);
-        {Header = undefined, Data} ->
-            Path = UniquePath,
-            ExpectedSize = 0
-    end,
+    {Header, Data, ExpectedSize, Path} = maybe_recv_header(Socket),
     {ok, Device} = file:open(Path, [write, raw]),
     {ByteCount, CheckSum} = begin
         ok = file:write(Device, Data),
@@ -60,15 +51,19 @@ prepare_device(Socket) ->
     {Device, Path, ExpectedSize, Header, ByteCount, CheckSum}.
 
 maybe_recv_header(Socket) ->
+    UniquePath = unique_path(),
     Transport = transport(Socket),
     case Transport:recv(Socket, size(?MAGIC)) of
         {ok, ?MAGIC} ->
             {ok, BinHeaderSize} = Transport:recv(Socket, ?ENCODED_SIZE),
             HeaderSize = binary:decode_unsigned(BinHeaderSize),
             {ok, BinHeader} = Transport:recv(Socket, HeaderSize),
-            {binary_to_term(BinHeader), <<>>};
+            Header = binary_to_term(BinHeader),
+            ExpectedSize = maps:get(size, Header),
+            Path = maps:get(path, Header, UniquePath),
+            {Header, <<>>, ExpectedSize, Path};
         {ok, Data} ->
-            {undefined, Data}
+            {undefined, Data, 0, UniquePath}
     end.
 
 maybe_respond(_, _, undefined) ->
