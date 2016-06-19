@@ -3,10 +3,10 @@
 %% external api
 -export([
     start/0, stop/0,
-    sendfile/4, sendfile/5, recv_file/1,
+    sendfile/4, sendfile/5,
     transformer/1]).
 %% app internal
--export([accept/1, transport/1]).
+-export([accept/1, recv_file/1]).
 
 -include("netcp.hrl").
 
@@ -122,11 +122,19 @@ sendfile(Transport, Host, Port, Path, Opts) ->
     Start = erlang:system_time(micro_seconds),
     BufSize = proplists:get_value(readbuf, Opts, ?DEFAULT_FILE_READ_BUF_SIZE),
     {ok, Socket} = Transport:connect(Host, Port, connect_opts(Transport, Opts)),
-    
     {ok, Device} = file:open(Path, [read, raw, binary]),
     Mod = proplists:get_value(transform, Opts, ?MODULE),
     Transform = Mod:transformer(Device),
+    ok = maybe_send_header(Socket, Path, Opts),
+    {ok, ByteCount, CheckSum} = send(
+        Socket, Device, BufSize, 0, erlang:adler32(<<>>), Transform),
+    ok = file:close(Device),
+    Response = maybe_recv_response(Socket, Opts, ByteCount, CheckSum),
+    ok = Transport:close(Socket),
+    ElapsedMicroSeconds = erlang:system_time(micro_seconds) - Start,
+    {ok, ByteCount, CheckSum, ByteCount/ElapsedMicroSeconds, Response}.
 
+maybe_send_header(Socket, Path, Opts) ->
     case proplists:get_value(header, Opts) of
         undefined -> ok;
         _ -> 
@@ -137,24 +145,19 @@ sendfile(Transport, Host, Port, Path, Opts) ->
                     [{path, RemotePath}]
             end ++ [{size, filelib:file_size(Path)}],
             ok = send_header(Socket, maps:from_list(Props))
-    end,
-    {ok, ByteCount, CheckSum} = send(
-        Socket, Device, BufSize, 0, erlang:adler32(<<>>), Transform),
+    end.
 
-    ok = file:close(Device),
-
-    Response = case proplists:get_value(header, Opts) of
+maybe_recv_response(Socket, Opts, ByteCount, CheckSum) ->
+    case proplists:get_value(header, Opts) of
         undefined -> undefined;
         _ ->
-            Resp = recv_response(Transport, Socket),
-            ok = check_response(ByteCount, CheckSum, Resp),
-            Resp
-    end,
-    ok = Transport:close(Socket),
-    ElapsedMicroSeconds = erlang:system_time(micro_seconds) - Start,
-    {ok, ByteCount, CheckSum, ByteCount/ElapsedMicroSeconds, Response}.
+            Response = recv_response(Socket),
+            ok = check_response(ByteCount, CheckSum, Response),
+            Response
+    end.
 
-recv_response(Transport, Socket) ->
+recv_response(Socket) ->
+    Transport = transport(Socket),
     {ok, BinResponse} = Transport:recv(Socket, 0, ?RESPONSE_TIMEOUT), % FIXME
     Response = binary_to_term(BinResponse),
     io:format("recv_response ~p~n", [Response]),
