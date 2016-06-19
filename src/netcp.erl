@@ -32,8 +32,8 @@ recv_file(Socket) ->
     Transport = transport(Socket),
     {Device, Path, ExpectedSize, Header, ByteCount, CheckSum0} = 
         prepare_device(Socket),
-    {ok, Size, CheckSum} = recv(
-        Socket, Device, ExpectedSize, ByteCount, CheckSum0),
+    {ok, Size, CheckSum} =
+        recv(Socket, Device, ExpectedSize, ByteCount, CheckSum0),
     Response = #{path => Path, size => Size, checksum => CheckSum},
     ok = maybe_respond(Socket, Response, Header),
     ok = file:close(Device),
@@ -67,7 +67,7 @@ maybe_recv_header(Socket) ->
     end.
 
 maybe_respond(_, _, undefined) ->
-    ok; % no header -> no response
+    ok; % only respond if sent header
 maybe_respond(Socket, Response, _Header) ->
     BinResponse = term_to_binary(Response),
     Transport = transport(Socket),
@@ -121,8 +121,8 @@ sendfile(Transport, Host, Port, Path, Opts) ->
     Mod = proplists:get_value(transform, Opts, ?MODULE),
     Transform = Mod:transformer(Device),
     ok = maybe_send_header(Socket, Path, Opts),
-    {ok, ByteCount, CheckSum} = send(
-        Socket, Device, BufSize, 0, erlang:adler32(<<>>), Transform),
+    {ok, ByteCount, CheckSum} = 
+        send(Socket, Device, BufSize, 0, erlang:adler32(<<>>), Transform),
     ok = file:close(Device),
     Response = maybe_recv_response(Socket, Opts, ByteCount, CheckSum),
     ok = Transport:close(Socket),
