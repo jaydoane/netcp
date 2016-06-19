@@ -32,7 +32,7 @@ recv_file(Socket) ->
     Transport = transport(Socket),
     {Device, Path, ExpectedSize, Header, ByteCount} = prepare_device(Socket),
     {ok, Size, CheckSum} = recv(
-        Transport, Socket, Device, ExpectedSize, ByteCount, erlang:adler32(<<>>)),
+        Socket, Device, ExpectedSize, ByteCount, CheckSum0),
     Response = #{path => Path, size => Size, checksum => CheckSum},
     ok = maybe_respond(Socket, Response, Header),
     ok = file:close(Device),
@@ -76,18 +76,18 @@ maybe_respond(_, _, undefined) ->
     ok; % no header -> no response
 maybe_respond(Socket, Response, _Header) ->
     BinResponse = term_to_binary(Response),
-    Transport = netcp:transport(Socket),
+    Transport = transport(Socket),
     io:format("respond ~p~n", [Response]),
     ok = Transport:send(Socket, BinResponse).
 
-recv(_Transport, _Socket, _Device, ByteCount, ByteCount, CheckSum) 
-    when ByteCount > 0 ->
+recv(_Socket, _Device, ByteCount, ByteCount, CheckSum) when ByteCount > 0 ->
     {ok, ByteCount, CheckSum};
-recv(Transport, Socket, Device, ExpectedSize, ByteCount, CheckSum) ->
+recv(Socket, Device, ExpectedSize, ByteCount, CheckSum) ->
+    Transport = transport(Socket),
     case Transport:recv(Socket, 0, ?RECV_TIMEOUT) of
         {ok, Data} ->
             ok = file:write(Device, Data),
-            recv(Transport, Socket, Device, ExpectedSize,
+            recv(Socket, Device, ExpectedSize,
                 ByteCount + iolist_size(Data),
                 erlang:adler32(CheckSum, Data));
         {error, timeout} ->
