@@ -30,7 +30,8 @@ unique_path() ->
     
 recv_file(Socket) ->
     Transport = transport(Socket),
-    {Device, Path, ExpectedSize, Header, ByteCount} = prepare_device(Socket),
+    {Device, Path, ExpectedSize, Header, ByteCount, CheckSum0} = 
+        prepare_device(Socket),
     {ok, Size, CheckSum} = recv(
         Socket, Device, ExpectedSize, ByteCount, CheckSum0),
     Response = #{path => Path, size => Size, checksum => CheckSum},
@@ -43,7 +44,7 @@ recv_file(Socket) ->
 prepare_device(Socket) ->
     UniquePath = unique_path(),
     case maybe_recv_header(Socket) of
-        {Header, Data = undefined} ->
+        {Header, Data = <<>>} ->
             io:format("header ~p~n", [Header]),
             Path = maps:get(path, Header, UniquePath),
             ExpectedSize = maps:get(size, Header);
@@ -52,13 +53,11 @@ prepare_device(Socket) ->
             ExpectedSize = 0
     end,
     {ok, Device} = file:open(Path, [write, raw]),
-    ByteCount = case Data of
-        undefined -> 0;
-        _ ->
-            ok = file:write(Device, Data),
-            size(Data)
+    {ByteCount, CheckSum} = begin
+        ok = file:write(Device, Data),
+        {size(Data), erlang:adler32(Data)}
     end,
-    {Device, Path, ExpectedSize, Header, ByteCount}.
+    {Device, Path, ExpectedSize, Header, ByteCount, CheckSum}.
 
 maybe_recv_header(Socket) ->
     Transport = transport(Socket),
@@ -67,7 +66,7 @@ maybe_recv_header(Socket) ->
             {ok, BinHeaderSize} = Transport:recv(Socket, ?ENCODED_SIZE),
             HeaderSize = binary:decode_unsigned(BinHeaderSize),
             {ok, BinHeader} = Transport:recv(Socket, HeaderSize),
-            {binary_to_term(BinHeader), undefined};
+            {binary_to_term(BinHeader), <<>>};
         {ok, Data} ->
             {undefined, Data}
     end.
