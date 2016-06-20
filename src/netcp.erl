@@ -130,25 +130,27 @@ sendfile(Transport, Host, Port, Path, Opts) ->
     {ok, ByteCount, CheckSum, ByteCount/ElapsedMicroSeconds, Response}.
 
 maybe_send_header(Socket, Path, Opts) ->
-    case proplists:get_value(header, Opts) of
-        undefined -> ok;
-        _ -> 
+    case proplists:get_value(raw, Opts) of
+        undefined ->
             Props = case proplists:get_value(path, Opts) of
                 undefined ->
                     [];
                 RemotePath ->
                     [{path, RemotePath}]
             end ++ [{size, filelib:file_size(Path)}],
-            ok = send_header(Socket, maps:from_list(Props))
+            ok = send_header(Socket, maps:from_list(Props));
+        _ -> 
+            ok
     end.
 
 maybe_recv_response(Socket, Opts, ByteCount, CheckSum) ->
-    case proplists:get_value(header, Opts) of
-        undefined -> undefined;
-        _ ->
+    case proplists:get_value(raw, Opts) of
+        undefined ->
             Response = recv_response(Socket),
             ok = check_response(ByteCount, CheckSum, Response),
-            Response
+            Response;
+        _ ->
+            undefined
     end.
 
 recv_response(Socket) ->
