@@ -28,10 +28,10 @@ block_size() ->
 
 transformer(Device) ->
     Header = first_header(Device, ?BLOCK_SIZE),
-    io:format("transformer Header ~p~n", [Header]),
+    io:format("transformer ~p~n", [Header]),
     Uuid = uuid(Header),
     NewUuid = uuid(),
-    io:format("transformer UUIDs ~p -> ~p~n", [Uuid, NewUuid]),
+    io:format("transformer ~p -> ~p~n", [Uuid, NewUuid]),
     fun(Data) ->
         binary:replace(Data, Uuid, NewUuid, [global])
     end.
