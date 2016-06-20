@@ -18,6 +18,6 @@
 -define(DEFAULT_KEYFILE,
     filename:join([os:getenv("HOME"), ".netcp", "key.pem"])).
 -define(DEFAULT_CIPHERS, [
-    {rsa,aes_128_cbc,sha},
-    {rsa,rc4_128,md5}]).
+    {rsa,aes_128_gcm,null,sha256},
+    {rsa,aes_128_cbc,sha}]).
 
