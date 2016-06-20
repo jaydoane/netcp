@@ -14,9 +14,9 @@
 -define(ENCODED_SIZE, 4).
 
 -define(DEFAULT_CERTFILE,
-        filename:join([os:getenv("HOME"), ".certs", "certificate.pem"])).
+    filename:join([os:getenv("HOME"), ".netcp", "cert.pem"])).
 -define(DEFAULT_KEYFILE,
-        filename:join([os:getenv("HOME"), ".certs", "key.pem"])).
+    filename:join([os:getenv("HOME"), ".netcp", "key.pem"])).
 -define(DEFAULT_CIPHERS, [
     {rsa,aes_128_cbc,sha},
     {rsa,rc4_128,md5}]).
