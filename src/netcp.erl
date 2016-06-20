@@ -21,7 +21,7 @@ accept(Listen) when is_port(Listen) ->
 accept(Listen) when is_tuple(Listen) -> % is_tuple since ssl_api.hrl is not exposed
     {ok, Socket} = ssl:transport_accept(Listen),
     ok = ssl:ssl_accept(Socket),
-    io:format("SSL connection info ~p~n", [ssl:connection_information(Socket)]),
+    io:format("ssl accept ~p~n", [ssl:connection_information(Socket)]),
     {ok, Socket}.
 
 unique_path() ->
@@ -38,7 +38,7 @@ recv_file(Socket) ->
     ok = maybe_respond(Socket, Response, Header),
     ok = file:close(Device),
     ok = Transport:close(Socket),
-    io:format("Wrote ~p~n", [Response]),
+    io:format("recv_file ~p~n", [Response]),
     ok.
 
 prepare_device(Socket) ->
