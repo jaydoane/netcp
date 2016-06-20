@@ -116,7 +116,9 @@ sendfile(tcp, Host, Port, Path, Opts) ->
 sendfile(Transport, Host, Port, Path, Opts) ->
     Start = erlang:system_time(micro_seconds),
     BufSize = proplists:get_value(readbuf, Opts, ?DEFAULT_FILE_READ_BUF_SIZE),
-    {ok, Socket} = Transport:connect(Host, Port, connect_opts(Transport, Opts)),
+    ConnectOpts = connect_opts(Transport, Opts),
+    ok = netcp_ssl:maybe_start_ssl(ConnectOpts),
+    {ok, Socket} = Transport:connect(Host, Port, ConnectOpts),
     {ok, Device} = file:open(Path, [read, raw, binary]),
     Mod = proplists:get_value(transform, Opts, ?MODULE),
     Transform = Mod:transformer(Device),
@@ -165,14 +167,10 @@ check_response(ByteCount, CheckSum, Resp) ->
     CheckSum = maps:get(checksum, Resp),
     ok.
 
-connect_opts(Transport, Opts) ->
-    case Transport of
-        ssl ->
-            ok = ssl:start(), % FIX
-            [prop(ciphers, Opts, ?DEFAULT_CIPHERS)];
-        _ ->
-            []
-    end ++ ?BASE_TCP_OPTS.
+connect_opts(ssl, Opts) ->
+    ?BASE_TCP_OPTS ++ [prop(ciphers, Opts, ?DEFAULT_CIPHERS)];
+connect_opts(_, _) ->
+    ?BASE_TCP_OPTS.
 
 send(Socket, Device, BufSize, Pos, CheckSum, Transform) ->
     case file:pread(Device, Pos, BufSize) of

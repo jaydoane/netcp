@@ -10,9 +10,11 @@ start(_StartType, _StartArgs) ->
     Port = env(port, ?DEFAULT_PORT),
     Transport = env(transport, ?DEFAULT_TRANSPORT),
     ListenOpts = listen_opts(Transport),
+    ok = netcp_ssl:maybe_start_ssl(ListenOpts),
+    ok = netcp_ssl:maybe_generate_default_cert(ListenOpts),
     {ok, Listen} = Transport:listen(Port, ListenOpts),
     io:format("netcp listening on port ~p transport ~p ~nopts ~p~n",
-              [Port, Transport, ListenOpts]),
+        [Port, Transport, ListenOpts]),
     case netcp_sup:start_link(Listen) of
         {ok, Pid} ->
             netcp_sup:start_child(),
@@ -24,11 +26,10 @@ start(_StartType, _StartArgs) ->
 stop(Listen) ->
     ok = (netcp:transport(Listen)):close(Listen).
 
-listen_opts(ssl) ->
-    ok = ssl:start(), % FIX?
-    [prop(certfile, ?DEFAULT_CERTFILE),
-     prop(keyfile, ?DEFAULT_KEYFILE),
-     prop(ciphers, ?DEFAULT_CIPHERS)] ++ ?BASE_TCP_OPTS;
+listen_opts(ssl) -> [
+    prop(certfile, ?DEFAULT_CERTFILE),
+    prop(keyfile, ?DEFAULT_KEYFILE),
+    prop(ciphers, ?DEFAULT_CIPHERS)] ++ ?BASE_TCP_OPTS;
 listen_opts(_) ->
     ?BASE_TCP_OPTS.
 
