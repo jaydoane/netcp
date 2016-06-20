@@ -132,7 +132,7 @@ prop(Key, Opts, Default) ->
 
 maybe_start_ssl(Opts) ->
     case proplists:get_value(ciphers, Opts) of
-        false ->
+        undefined ->
             ok;
         _ ->
             ok = ssl:start()
@@ -140,7 +140,7 @@ maybe_start_ssl(Opts) ->
 
 maybe_generate_default_cert(Opts) ->
     case proplists:get_value(certfile, Opts) of
-        false ->
+        undefined ->
             ok;
         Path when Path =:= ?DEFAULT_CERTFILE ->
             case filelib:is_file(Path) of
