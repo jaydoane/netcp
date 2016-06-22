@@ -68,15 +68,15 @@ load_header(Device, Pos) ->
     Md5Sig = crypto:hash(md5, HeaderBin),
     binary_to_term(HeaderBin).
 
-total_read_len(0, FinalLen) ->
-    total_read_len(1, FinalLen) + 1;
-total_read_len(BlockOffset, FinalLen) ->
+total_read_size(0, FinalSize) ->
+    total_read_size(1, FinalSize) + 1;
+total_read_size(BlockOffset, FinalSize) ->
     case ?BLOCK_SIZE - BlockOffset of
-        BlockLeft when BlockLeft >= FinalLen ->
-            FinalLen;
+        BlockLeft when BlockLeft >= FinalSize ->
+            FinalSize;
         BlockLeft ->
-            FinalLen + ((FinalLen - BlockLeft) div (?BLOCK_SIZE - 1)) +
-            if ((FinalLen - BlockLeft) rem (?BLOCK_SIZE - 1)) =:= 0 -> 0;
+            FinalSize + ((FinalSize - BlockLeft) div (?BLOCK_SIZE - 1)) +
+            if ((FinalSize - BlockLeft) rem (?BLOCK_SIZE - 1)) =:= 0 -> 0;
                 true -> 1 end
     end.
 
