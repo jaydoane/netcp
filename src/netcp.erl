@@ -4,9 +4,9 @@
 -export([
     start/0, stop/0,
     sendfile/4, sendfile/5,
-    transformer/1]).
+    transformer/0]).
 %% app internal
--export([accept/1, recv_file/1]).
+-export([accept/1, recv_file/1, left_pad/2]).
 
 -include("netcp.hrl").
 
@@ -121,7 +121,7 @@ sendfile(Transport, Host, Port, Path, Opts) ->
     {ok, Socket} = Transport:connect(Host, Port, ConnectOpts),
     {ok, Device} = file:open(Path, [read, raw, binary]),
     Mod = proplists:get_value(transform, Opts, ?MODULE),
-    Transform = Mod:transformer(Device),
+    Transform = Mod:transformer(),
     ok = maybe_send_header(Socket, Path, Opts),
     {ok, ByteCount, CheckSum} = 
         send(Socket, Device, BufSize, 0, erlang:adler32(<<>>), Transform),
@@ -179,7 +179,7 @@ send(Socket, Device, BufSize, Pos, CheckSum, Transform) ->
             Transport = transport(Socket),
             case Transport:send(Socket, Data) of
                 ok ->
-                    send(Socket, Device, BufSize, Pos + size(Data),
+                    send(Socket, Device, BufSize, Pos + iolist_size(Data),
                         erlang:adler32(CheckSum, Data), Transform);
                 Else ->
                     Else
@@ -189,7 +189,7 @@ send(Socket, Device, BufSize, Pos, CheckSum, Transform) ->
     end.
 
 %% default is no-op
-transformer(_Device) ->
+transformer() ->
     fun(Data) -> Data end.
 
 transport(Socket) when is_port(Socket) ->
