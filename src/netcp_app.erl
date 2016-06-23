@@ -26,12 +26,15 @@ start(_StartType, _StartArgs) ->
 stop(Listen) ->
     ok = (netcp:transport(Listen)):close(Listen).
 
+tcp_opts() ->
+    ?BASE_TCP_OPTS ++ [prop(recbuf, ?DEFAULT_RECBUF_SIZE)].
+
 listen_opts(ssl) -> [
     prop(certfile, ?DEFAULT_CERTFILE),
     prop(keyfile, ?DEFAULT_KEYFILE),
-    prop(ciphers, ?DEFAULT_CIPHERS)] ++ ?BASE_TCP_OPTS;
+    prop(ciphers, ?DEFAULT_CIPHERS)] ++ tcp_opts();
 listen_opts(_) ->
-    ?BASE_TCP_OPTS.
+    tcp_opts().
 
 env(Key, Default) ->
     application:get_env(netcp, Key, Default).
