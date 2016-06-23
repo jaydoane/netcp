@@ -25,8 +25,8 @@ accept(Listen) when is_tuple(Listen) -> % is_tuple since ssl_api.hrl is not expo
     {ok, Socket}.
 
 unique_path() ->
-    netcp_app:env(dir, "/tmp/") ++ "1".
-        %% ++ integer_to_list(erlang:unique_integer([positive])).
+    netcp_app:env(dir, "/tmp/netcp-")
+        ++ integer_to_list(erlang:unique_integer([positive])).
     
 recv_file(Socket) ->
     Transport = transport(Socket),
