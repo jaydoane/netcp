@@ -4,7 +4,7 @@
 -export([
     start/0, stop/0,
     sendfile/4, sendfile/5,
-    transformer/0]).
+    block_size/0, transformer/0]).
 %% app internal
 -export([accept/1, recv_file/1, left_pad/2]).
 
@@ -115,16 +115,17 @@ sendfile(tcp, Host, Port, Path, Opts) ->
     sendfile(gen_tcp, Host, Port, Path, Opts);
 sendfile(Transport, Host, Port, Path, Opts) ->
     Start = erlang:system_time(micro_seconds),
-    BufSize = proplists:get_value(readbuf, Opts, ?DEFAULT_FILE_READ_BUF_SIZE),
     ConnectOpts = connect_opts(Transport, Opts),
     ok = netcp_ssl:maybe_start_ssl(ConnectOpts),
     {ok, Socket} = Transport:connect(Host, Port, ConnectOpts),
     {ok, Device} = file:open(Path, [read, raw, binary]),
     Mod = proplists:get_value(transform, Opts, ?MODULE),
-    Transform = Mod:transformer(),
+    BufBlockCount = proplists:get_value(
+        readbuf_blocks, Opts, ?DEFAULT_READ_BUF_BLOCK_COUNT),
+    BufSize = Mod:block_size() * BufBlockCount,
     ok = maybe_send_header(Socket, Path, Opts),
     {ok, ByteCount, CheckSum} = 
-        send(Socket, Device, BufSize, 0, erlang:adler32(<<>>), Transform),
+        send(Socket, Device, BufSize, 0, erlang:adler32(<<>>), Mod:transformer()),
     ok = file:close(Device),
     Response = maybe_recv_response(Socket, Opts, ByteCount, CheckSum),
     ok = Transport:close(Socket),
@@ -191,6 +192,9 @@ send(Socket, Device, BufSize, Pos, CheckSum, Transform) ->
 %% default is no-op
 transformer() ->
     fun(Data) -> Data end.
+
+block_size() ->
+    ?DEFAULT_BLOCK_SIZE.
 
 transport(Socket) when is_port(Socket) ->
     gen_tcp;
