@@ -21,7 +21,7 @@ accept(Listen) when is_port(Listen) ->
 accept(Listen) when is_tuple(Listen) -> % is_tuple since ssl_api.hrl is not exposed
     {ok, Socket} = ssl:transport_accept(Listen),
     ok = ssl:ssl_accept(Socket),
-    io:format("ssl accept ~p~n", [ssl:connection_information(Socket)]),
+    netcp_log:info("netcp ssl accept ~p", [ssl:connection_info(Socket)]),
     {ok, Socket}.
 
 unique_path() ->
@@ -40,7 +40,7 @@ recv_file(Socket) ->
     ok = maybe_respond(Socket, Response, Header),
     ok = file:close(Device),
     ok = Transport:close(Socket),
-    io:format("recv_file ~p~n", [Response]),
+    netcp_log:info("netcp recv_file ~p", [Response]),
     ok.
 
 prepare_device(Socket) ->
@@ -73,7 +73,7 @@ maybe_respond(_, _, undefined) ->
 maybe_respond(Socket, Response, _Header) ->
     BinResponse = term_to_binary(Response),
     Transport = transport(Socket),
-    io:format("respond ~p~n", [Response]),
+    netcp_log:debug("netcp respond ~p", [Response]),
     ok = Transport:send(Socket, BinResponse).
 
 recv(_Socket, _Device, ByteCount, ByteCount, CheckSum) when ByteCount > 0 ->
@@ -93,7 +93,7 @@ recv(Socket, Device, ExpectedSize, ByteCount, CheckSum) ->
     end.
 
 send_header(Socket, Header) ->
-    io:format("send_header ~p~n", [Header]),
+    netcp_log:debug("netcp send_header ~p", [Header]),
     Transport = transport(Socket),
     ok = Transport:send(Socket, ?MAGIC),
     {BinSize, BinHeader} = encode(?ENCODED_SIZE, Header),
@@ -162,7 +162,7 @@ recv_response(Socket) ->
     Transport = transport(Socket),
     {ok, BinResponse} = Transport:recv(Socket, 0, ?RESPONSE_TIMEOUT), % FIXME
     Response = binary_to_term(BinResponse),
-    io:format("recv_response ~p~n", [Response]),
+    netcp_log:debug("netcp recv_response ~p", [Response]),
     Response.
 
 check_response(ByteCount, CheckSum, Resp) ->

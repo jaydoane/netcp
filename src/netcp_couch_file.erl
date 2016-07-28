@@ -31,7 +31,7 @@ block_size() ->
 
 transformer() ->
     NewUuid = uuid(),
-    io:format("transformer uuid ~p~n", [NewUuid]),
+    netcp_log:debug("netcp transformer uuid ~p", [NewUuid]),
     fun(Data) ->
         [maybe_replace_header(Block, NewUuid) || Block <- blocks(Data)]
     end.

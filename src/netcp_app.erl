@@ -13,7 +13,7 @@ start(_StartType, _StartArgs) ->
     ok = netcp_ssl:maybe_start_ssl(ListenOpts),
     ok = netcp_ssl:maybe_generate_default_cert(ListenOpts),
     {ok, Listen} = Transport:listen(Port, ListenOpts),
-    io:format("netcp listening on port ~p transport ~p ~nopts ~p~n",
+    netcp_log:info("netcp listening on port ~p transport ~p ~nopts ~p",
         [Port, Transport, ListenOpts]),
     case netcp_sup:start_link(Listen) of
         {ok, Pid} ->
