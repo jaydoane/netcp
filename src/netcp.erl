@@ -25,9 +25,11 @@ accept(Listen) when is_tuple(Listen) -> % is_tuple since ssl_api.hrl is not expo
     {ok, Socket}.
 
 unique_path() ->
-    netcp_app:env(dir, "/tmp/netcp-")
-        ++ integer_to_list(erlang:unique_integer([positive])).
+    netcp_app:env(dir, "/tmp/netcp-") ++ hex_str(crypto:rand_bytes(4)).
     
+hex_str(Bin) ->
+    [begin if N < 10 -> 48 + N; true -> 87 + N end end || <<N:4>> <= Bin].
+
 recv_file(Socket) ->
     Transport = transport(Socket),
     {Device, Path, ExpectedSize, Header, ByteCount, CheckSum0} = 
@@ -114,7 +116,7 @@ sendfile(Transport, Host, Path, Opts) ->
 sendfile(tcp, Host, Port, Path, Opts) ->
     sendfile(gen_tcp, Host, Port, Path, Opts);
 sendfile(Transport, Host, Port, Path, Opts) ->
-    Start = erlang:system_time(micro_seconds),
+    Start = epoch_micro_seconds(),
     ConnectOpts = connect_opts(Transport, Opts),
     ok = netcp_ssl:maybe_start_ssl(ConnectOpts),
     {ok, Socket} = Transport:connect(Host, Port, ConnectOpts),
@@ -129,7 +131,7 @@ sendfile(Transport, Host, Port, Path, Opts) ->
     ok = file:close(Device),
     Response = maybe_recv_response(Socket, Opts, ByteCount, CheckSum),
     ok = Transport:close(Socket),
-    ElapsedMicroSeconds = erlang:system_time(micro_seconds) - Start,
+    ElapsedMicroSeconds = epoch_micro_seconds() - Start,
     {ok, ByteCount, CheckSum, ByteCount/ElapsedMicroSeconds, Response}.
 
 maybe_send_header(Socket, Path, Opts) ->
@@ -208,3 +210,8 @@ transport(_) ->
 
 prop(Key, Opts, Default) ->
     {Key, proplists:get_value(Key, Opts, Default)}.    
+
+%% support OTP 17
+epoch_micro_seconds() ->
+    {MegaSecs, Secs, MicroSecs} = os:timestamp(),
+	(MegaSecs*1000000 + Secs)*1000000 + MicroSecs.
