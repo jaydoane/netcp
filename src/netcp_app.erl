@@ -37,7 +37,7 @@ listen_opts(_) ->
     tcp_opts().
 
 env(Key, Default) ->
-    application:get_env(netcp, Key, Default).
+    netcp_config:get(Key, Default).
 
 prop(Key, Defaults) ->
     {Key, env(Key, Defaults)}.
