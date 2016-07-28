@@ -9,7 +9,10 @@ maybe_start_ssl(Opts) ->
         undefined ->
             ok;
         _ ->
-            ok = ssl:start()
+            case ssl:start() of
+                ok -> ok;
+                {error,{already_started,ssl}} -> ok
+            end
     end.
 
 maybe_generate_default_cert(Opts) ->
