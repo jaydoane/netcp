@@ -8,6 +8,8 @@
 %% app internal
 -export([accept/1, recv_file/1, left_pad/2]).
 
+-export([hex_str/1]).
+
 -include("netcp.hrl").
 
 start() ->
@@ -216,3 +218,8 @@ prop(Key, Opts, Default) ->
 epoch_micro_seconds() ->
     {MegaSecs, Secs, MicroSecs} = os:timestamp(),
     (MegaSecs*1000000 + Secs)*1000000 + MicroSecs.
+
+-ifdef(TEST).
+hex_str_test() ->
+    hex_str(<<255, 0, 255, 0>>) =:= "ff00ff00".
+-endif.
