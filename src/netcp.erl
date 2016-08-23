@@ -121,7 +121,8 @@ sendfile(Transport, Host, Port, Path, Opts) ->
     Start = epoch_micro_seconds(),
     ConnectOpts = connect_opts(Transport, Opts),
     ok = netcp_ssl:maybe_start_ssl(ConnectOpts),
-    {ok, Socket} = Transport:connect(Host, Port, ConnectOpts),
+    Timeout = proplists:get_value(timeout, Opts, ?DEFAULT_CONNECT_TIMEOUT),
+    {ok, Socket} = Transport:connect(Host, Port, ConnectOpts, Timeout),
     {ok, Device} = file:open(Path, [read, raw, binary]),
     Mod = proplists:get_value(transform, Opts, ?MODULE),
     BufBlockCount = proplists:get_value(
