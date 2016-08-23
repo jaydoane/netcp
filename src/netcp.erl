@@ -134,8 +134,8 @@ sendfile(Transport, Host, Port, Path, Opts) ->
     Response = maybe_recv_response(Socket, Opts, ByteCount, CheckSum),
     ok = Transport:close(Socket),
     ElapsedMicroSeconds = epoch_micro_seconds() - Start,
-    {ok, ByteCount, CheckSum, ByteCount/ElapsedMicroSeconds, Response}.
     #{size := ByteCount, checksum := CheckSum} = Response,
+    {ok, ByteCount, ByteCount/ElapsedMicroSeconds}.
 
 maybe_send_header(Socket, Path, Opts) ->
     case proplists:get_value(raw, Opts) of
