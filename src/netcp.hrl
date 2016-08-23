@@ -7,6 +7,7 @@
     binary, {packet, 0}, {active, false}, {reuseaddr, true}]).
 -define(RECV_TIMEOUT, 1000). % ms
 -define(RESPONSE_TIMEOUT, 5000). % ms
+-define(DEFAULT_CONNECT_TIMEOUT, 5000). % ms
 
 -define(DEFAULT_RECBUF_SIZE, 4096*4096).
 -define(DEFAULT_READ_BUF_BLOCK_COUNT, 4096).
