@@ -205,11 +205,6 @@ transport(Socket) when is_port(Socket) ->
 transport(_) ->
     ssl.
 
-%% getopts(Socket, OptionNames) when is_port(Socket) ->
-%%     inet:getopts(Socket, OptionNames);
-%% getopts(Socket, OptionNames) ->
-%%     ssl:getopts(Socket, OptionNames).
-
 prop(Key, Opts, Default) ->
     {Key, proplists:get_value(Key, Opts, Default)}.    
 
