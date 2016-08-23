@@ -3,7 +3,7 @@
 %% external api
 -export([
     start/0, stop/0,
-    sendfile/4, sendfile/5,
+    sendfile/3, sendfile/5,
     block_size/0, transformer/0]).
 %% app internal
 -export([accept/1, recv_file/1, left_pad/2]).
@@ -110,8 +110,10 @@ left_pad(Bin, ByteWidth) when size(Bin) =< ByteWidth ->
     Bits = ?BITS_PER_BYTE * (ByteWidth - size(Bin)),
     <<0:Bits, Bin/binary>>.
 
-sendfile(Transport, Host, Path, Opts) ->
-    sendfile(Transport, Host, ?DEFAULT_PORT, Path, Opts).
+sendfile(Host, Path, Opts) ->
+    Transport = netcp_config:get(transport, ?DEFAULT_TRANSPORT),
+    Port = netcp_config:get(port, ?DEFAULT_PORT),
+    sendfile(Transport, Host, Port, Path, Opts).
 
 sendfile(tcp, Host, Port, Path, Opts) ->
     sendfile(gen_tcp, Host, Port, Path, Opts);
