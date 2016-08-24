@@ -30,6 +30,8 @@ unique_path() ->
 hex_str(Bin) ->
     [begin if N < 10 -> 48 + N; true -> 87 + N end end || <<N:4>> <= Bin].
 
+recv_file(accept_error) ->
+    ok;
 recv_file(Socket) ->
     Transport = transport(Socket),
     {Device, Path, ExpectedSize, Header, ByteCount, CheckSum0} = 

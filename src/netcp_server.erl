@@ -22,7 +22,13 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info(timeout, #state{listen = Listen} = State) ->
-    {ok, Socket} = netcp:accept(Listen),
+    Socket = try netcp:accept(Listen) of
+        {ok, S} -> S
+    catch
+        Class:Reason ->
+            netcp_log:debug("netcp_server accept fail ~p:~p", [Class, Reason]),
+            accept_error
+    end,
     {ok, _} = netcp_sup:start_child(),
     ok = netcp:recv_file(Socket),
     {stop, normal, State};
