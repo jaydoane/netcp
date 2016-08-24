@@ -25,7 +25,9 @@ handle_info(timeout, #state{listen = Listen} = State) ->
     {ok, Socket} = netcp:accept(Listen),
     {ok, _} = netcp_sup:start_child(),
     ok = netcp:recv_file(Socket),
-    {stop, normal, State}.
+    {stop, normal, State};
+handle_info(_, State) ->
+    {noreply, State}.
 
 terminate(_Reason, _State) ->
     ok.
