@@ -17,7 +17,7 @@ start(_StartType, _StartArgs) ->
         [Port, Transport, ListenOpts]),
     case netcp_sup:start_link(Listen) of
         {ok, Pid} ->
-            netcp_sup:start_child(),
+            {ok, _} = netcp_sup:start_child(),
             {ok, Pid, Listen};
         Other ->
             {error, Other}
