@@ -215,4 +215,4 @@ prop(Key, Opts, Default) ->
 %% support OTP 17
 epoch_micro_seconds() ->
     {MegaSecs, Secs, MicroSecs} = os:timestamp(),
-	(MegaSecs*1000000 + Secs)*1000000 + MicroSecs.
+    (MegaSecs*1000000 + Secs)*1000000 + MicroSecs.
