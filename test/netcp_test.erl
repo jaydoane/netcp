@@ -17,7 +17,7 @@ golden_path_test() ->
     true = filelib:is_file(Source),
     false = filelib:is_file(Target),
     ok = setup(),
-    {ok, _, _, _, _} = netcp:sendfile(
+    {ok, _, _} = netcp:sendfile(
         ssl, "localhost", ?TEST_PORT, Source,
         [{transform,netcp_couch_file}, {path, Target}]),
     true = filelib:is_file(Target),
